@@ -28,12 +28,20 @@ yuv_reader_open(const char *path, int width, int height)
 int
 yuv_read_frame(yuv_reader_t reader, yuv_frame_t frame)
 {
+    ssize_t bytes;
+
     /*
      * This is not very robust but good enough for demo
      */
-    read(reader->fd, frame->Y, frame->Ysize);
-    read(reader->fd, frame->U, frame->Usize);
-    read(reader->fd, frame->V, frame->Vsize);
+    bytes = read(reader->fd, frame->Y, frame->Ysize);
+    if (bytes <= 0)
+        return (-1);
+    bytes = read(reader->fd, frame->U, frame->Usize);
+    if (bytes <= 0)
+        return (-1);
+    bytes = read(reader->fd, frame->V, frame->Vsize);
+    if (bytes <= 0)
+        return (-1);
 
     return (0);
 }
