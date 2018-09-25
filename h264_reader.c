@@ -55,6 +55,8 @@ h264_read_nal(h264_reader_t reader, h264_nal_t *nalp)
     if (nalp == NULL)
         return (EINVAL);
 
+    *nalp = NULL;
+
     h264_nal_t nal = malloc(sizeof(struct h264_nal));
     if (nal == NULL)
         return (ENOMEM);
@@ -111,7 +113,6 @@ h264_read_nal(h264_reader_t reader, h264_nal_t *nalp)
             }
             memcpy(nal->data, reader->buffer + reader->pos, nal->size);
             reader->pos = next_nal;
-            *nalp = nal;
             break; /* Done searching for NAL */
         }
 
@@ -131,7 +132,7 @@ h264_read_nal(h264_reader_t reader, h264_nal_t *nalp)
                 return (ENOMEM);
             }
             memcpy(nal->data + nal->size, reader->buffer + reader->pos,
-                    new_size);
+                    new_size - nal->size);
         }
         else {
             nal->data = malloc(new_size);
@@ -162,6 +163,8 @@ h264_read_nal(h264_reader_t reader, h264_nal_t *nalp)
         else
             break; /* Done searching for NAL */
     } while (1);
+
+    *nalp = nal;
 
     return (0);
 }
