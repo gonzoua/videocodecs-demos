@@ -82,7 +82,7 @@ yuv_alloc_frame(yuv_reader_t reader)
         return (NULL);
     }
 	frame->Vsize = UVsize;
-	frame->V = (unsigned char*)ALIGN_TO(frame->Uptr, DEFAULT_PLANE_ALIGNMENT);
+	frame->V = (unsigned char*)ALIGN_TO(frame->Vptr, DEFAULT_PLANE_ALIGNMENT);
 
 	return (frame);
 }
