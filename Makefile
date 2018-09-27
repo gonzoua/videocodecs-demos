@@ -1,4 +1,5 @@
-DECODER_OBJS = decoder.o h264_reader.o
+# h264_reader.c is not required
+DECODER_OBJS = decoder.o h264_decoder_mpp.o
 ENCODER_OBJS = encoder.o yuv_reader.o h264_encoder_mpp.o
 CFLAGS = -g
 LFLAGS = -lrockchip_mpp

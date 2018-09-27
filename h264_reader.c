@@ -7,7 +7,7 @@
 
 #include "h264_reader.h"
 
-#define	DEFAULT_BUFFER_SIZE (1024*1024)
+#define	DEFAULT_BUFFER_SIZE (64*1024*1024)
 
 /**
  * Opens H264 file at path @path and returns opaque reader pointer

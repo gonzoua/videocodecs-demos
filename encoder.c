@@ -1,8 +1,34 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <sys/errno.h>
+#include <fcntl.h>
+#include <string.h>
 
 #include "yuv_reader.h"
 #include "h264_encoder_mpp.h"
+
+struct h264_writer
+{
+    int fd;
+};
+
+void h264_writer_callback(void *ptr, char *data, ssize_t len)
+{
+    ssize_t bytes, total;
+
+    struct h264_writer *writer = (struct h264_writer *)ptr;
+    total = bytes = 0;
+    while (total < len) {
+        bytes = write(writer->fd, data + total, len - total);
+        if (bytes < 0) {
+            if (errno != EAGAIN)
+                break;
+        }
+        else
+            total += bytes;
+    }
+}
 
 void
 usage(const char *exe)
@@ -18,12 +44,25 @@ main(int argc, const char *argv[])
     yuv_frame_t frame;
     h264_encoder_mpp_t encoder;
     int width, height;
+    struct h264_writer *writer;
 
     if (argc != 3)
         usage(argv[0]);
 
     width = 1980;
     height = 1072;
+
+    writer = (struct h264_writer *)malloc(sizeof(struct h264_writer));
+    if (writer == NULL) {
+        fprintf(stderr, "failed to allocate H264 writer context\n");
+        exit(1);
+    }
+
+    writer->fd = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (writer->fd < 0) {
+        fprintf(stderr, "failed to open '%s' for writing: %s\n", argv[2], strerror(errno));
+        exit(1);
+    }
 
     yuv = yuv_reader_open(argv[1], 1920, 1072);
     if (yuv == NULL) {
@@ -32,7 +71,7 @@ main(int argc, const char *argv[])
     }
 
     frame = yuv_alloc_frame(yuv);
-    encoder = mpp_h264_create_encoder(width, height);
+    encoder = mpp_h264_create_encoder(width, height, h264_writer_callback, writer);
     if (encoder == NULL) {
         fprintf(stderr, "failed to create H264 encoder\n");
         exit(1);
@@ -42,11 +81,15 @@ main(int argc, const char *argv[])
         mpp_h264_encode_frame(encoder, frame, 0);
     }
 
-    /* generate EOS */
+    /* Generate EOS packet */
     mpp_h264_encode_frame(encoder, frame, 1);
 
+    /* Cleanup encoder things */
     yuv_free_frame(frame);
     mpp_h264_destroy_encoder(encoder);
+
+    close(writer->fd);
+    free(writer);
 
     return 0;
 }

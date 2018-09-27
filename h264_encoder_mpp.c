@@ -27,6 +27,8 @@
 struct h264_encoder_mpp {
     int                 width;
     int                 height;
+    encoder_callback_t  callback;
+    void                *arg;
 
     MppCodingType       type;
     MppCtx              ctx;
@@ -138,11 +140,16 @@ mpp_h264_free_frames(struct h264_encoder_mpp *encoder)
 }
 
 h264_encoder_mpp_t
-mpp_h264_create_encoder(int width, int height)
+mpp_h264_create_encoder(int width, int height, encoder_callback_t callback, void *arg)
 {
     struct h264_encoder_mpp *encoder;
     encoder = malloc(sizeof(struct h264_encoder_mpp));
 
+    encoder->width = width;
+    encoder->height = height;
+    encoder->callback = callback;
+    encoder->arg = arg;
+    
     encoder->type = MPP_VIDEO_CodingAVC;
     MPP_RET ret = MPP_OK;
     ret = mpp_create(&encoder->ctx, &encoder->mpi);
@@ -327,15 +334,15 @@ mpp_h264_encode_frame(h264_encoder_mpp_t encoder, yuv_frame_t frame, int eos)
 				static int first_sps = 1;
                 if ((intra_flag || first_sps) && encoder->sps_packet) {
 					first_sps = 0;
-                    const void *sps_ptr = mpp_packet_get_pos(encoder->sps_packet);
+                    void *sps_ptr = mpp_packet_get_pos(encoder->sps_packet);
                     size_t sps_len = mpp_packet_get_length(encoder->sps_packet);
-                    fprintf(stderr, "SPS %d bytes\n", sps_len);
-                    fprintf(stderr, "Packet %d bytes\n", len);
+                    encoder->callback(encoder->arg, sps_ptr, sps_len);
+                    encoder->callback(encoder->arg, ptr, len);
 					// TODO: write(fd, sps_ptr, sps_len);
 					// TODO: write(fd, ptr, len);
                 } else {
 					// TODO: write(fd, ptr, len);
-                    fprintf(stderr, "Packet %d bytes\n", len);
+                    encoder->callback(encoder->arg, ptr, len);
                 }
 
                 mpp_packet_deinit(&packet);
