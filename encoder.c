@@ -4,6 +4,7 @@
 #include <sys/errno.h>
 #include <fcntl.h>
 #include <string.h>
+#include <getopt.h>
 
 #include "yuv_reader.h"
 #include "h264_encoder_mpp.h"
@@ -40,24 +41,47 @@ void h264_writer_callback(void *ptr, char *data, ssize_t len)
 void
 usage(const char *exe)
 {
-    fprintf(stderr, "Usage: %s in.yuv out.yuv\n", exe);
+    fprintf(stderr, "Usage: %s [-w width] [-h height] in.yuv out.yuv\n", exe);
     exit(1);
 }
 
 int
-main(int argc, const char *argv[])
+main(int argc, char * const*argv)
 {
     yuv_reader_t yuv;
     yuv_frame_t frame;
     h264_encoder_mpp_t encoder;
     int width, height;
     struct h264_writer *writer;
+    const char *exe;
+    int ch;
 
-    if (argc != 3)
-        usage(argv[0]);
+    exe = argv[0];
 
-    width = 1980;
-    height = 1072;
+    width = 1920;
+    height = 1080;
+
+    while ((ch = getopt(argc, argv, "h:w:")) != -1) {
+        switch (ch) {
+            case 'w':
+                     width = atoi(optarg);
+                     break;
+            case 'h':
+                     height = atoi(optarg);
+                     break;
+             case '?':
+             default:
+                     usage(exe);
+             }
+     }
+
+     argc -= optind;
+     argv += optind;
+
+    if (argc != 2)
+        usage(exe);
+
+    fprintf(stderr, "Input resolution: %dx%d\n", width, height);
 
     writer = (struct h264_writer *)malloc(sizeof(struct h264_writer));
     if (writer == NULL) {
@@ -65,15 +89,15 @@ main(int argc, const char *argv[])
         exit(1);
     }
 
-    writer->fd = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    writer->fd = open(argv[1], O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (writer->fd < 0) {
-        fprintf(stderr, "failed to open '%s' for writing: %s\n", argv[2], strerror(errno));
+        fprintf(stderr, "failed to open '%s' for writing: %s\n", argv[1], strerror(errno));
         exit(1);
     }
 
-    yuv = yuv_reader_open(argv[1], 1920, 1072);
+    yuv = yuv_reader_open(argv[0], width, height);
     if (yuv == NULL) {
-        fprintf(stderr, "failed to open input file %s\n", argv[1]);
+        fprintf(stderr, "failed to open input file %s\n", argv[0]);
         exit(1);
     }
 

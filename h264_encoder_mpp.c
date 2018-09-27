@@ -12,25 +12,23 @@
 #include "yuv_reader.h"
 #include "h264_encoder_mpp.h"
 
-#define BUF_SIZE (1024*1024)
-#define MPP_H264_DECODE_TIMEOUT 3
-
-#define UP_TO_16(x) (((x) + 15) & ~0xf)
-#define WIDTH 1920
-#define HEIGHT 1080
-#define SIZE (UP_TO_16(WIDTH)*UP_TO_16(HEIGHT)*3/2)
-
-#define msleep(x) usleep((x)*1000)
-
+/*
+ * width/height has to be aligned by 16. MPP 20171218 assumes
+ * that alignment by 8 is enough but iommu on my RK3399 crashes
+ * for 8 but not for 16
+ */
+#define UP_TO_16(x) (((x) + 0xf) & ~0xf)
 #define MPP_MAX_BUFFERS                 4
 
 struct h264_encoder_mpp {
     int                 width;
     int                 height;
+    int                 h_stride;
+    int                 v_stride;
+
     encoder_callback_t  callback;
     void                *arg;
 
-    MppCodingType       type;
     MppCtx              ctx;
     MppApi              *mpi;
 
@@ -51,19 +49,25 @@ mpp_h264_setup_format(struct h264_encoder_mpp *encoder)
     memset (&prep_cfg, 0, sizeof (prep_cfg));
     prep_cfg.change = MPP_ENC_PREP_CFG_CHANGE_INPUT |
             MPP_ENC_PREP_CFG_CHANGE_FORMAT;
-    prep_cfg.width = WIDTH;
-    prep_cfg.height = HEIGHT;
+    prep_cfg.width = encoder->width;
+    prep_cfg.height = encoder->height;
     prep_cfg.format = MPP_FMT_YUV420P;
-    prep_cfg.hor_stride = WIDTH;
-    prep_cfg.ver_stride = UP_TO_16(HEIGHT);
+    prep_cfg.hor_stride = UP_TO_16(encoder->width);
+    prep_cfg.ver_stride = UP_TO_16(encoder->height);
 
     if (encoder->mpi->control(encoder->ctx, MPP_ENC_SET_PREP_CFG, &prep_cfg)) {
-        fprintf (stderr, "Setting input format for rockchip mpp failed");
+        fprintf (stderr, "Setting input format for rockchip mpp failed\n");
         return -1;
     }
 
     if (encoder->mpi->control(encoder->ctx, MPP_ENC_GET_EXTRA_INFO, &encoder->sps_packet))
         encoder->sps_packet = NULL;
+
+    if (encoder->sps_packet) {
+        void *sps_ptr = mpp_packet_get_pos(encoder->sps_packet);
+        size_t sps_len = mpp_packet_get_length(encoder->sps_packet);
+        encoder->callback(encoder->arg, sps_ptr, sps_len);
+    }
 
     return (0);
 }
@@ -78,10 +82,13 @@ mpp_h264_alloc_frames(struct h264_encoder_mpp *encoder)
         goto failed;
 
     for (int i = 0; i < MPP_MAX_BUFFERS; i++) {
-        if (mpp_buffer_get(encoder->input_group, &encoder->input_buffer[i], SIZE))
+        int frame_size = encoder->h_stride*encoder->v_stride*3/2;
+        if (mpp_buffer_get(encoder->input_group, &encoder->input_buffer[i], frame_size))
             goto failed;
-        /* Reasonable size to fit encoded frame */
-        if (mpp_buffer_get(encoder->output_group, &encoder->output_buffer[i], WIDTH*HEIGHT))
+        /* 
+         * More than enough to fit encoded frame. Should be significantly less
+         */
+        if (mpp_buffer_get(encoder->output_group, &encoder->output_buffer[i], encoder->width*encoder->height))
             goto failed;
     }
 
@@ -92,10 +99,10 @@ mpp_h264_alloc_frames(struct h264_encoder_mpp *encoder)
         goto failed;
     }
 
-    mpp_frame_set_width(encoder->mpp_frame, WIDTH);
-    mpp_frame_set_height(encoder->mpp_frame, HEIGHT);
-    mpp_frame_set_hor_stride(encoder->mpp_frame, UP_TO_16(WIDTH));
-    mpp_frame_set_ver_stride(encoder->mpp_frame, UP_TO_16(HEIGHT));
+    mpp_frame_set_width(encoder->mpp_frame, encoder->width);
+    mpp_frame_set_height(encoder->mpp_frame, encoder->height);
+    mpp_frame_set_hor_stride(encoder->mpp_frame, encoder->h_stride);
+    mpp_frame_set_ver_stride(encoder->mpp_frame, encoder->v_stride);
 
     if (encoder->mpi->poll(encoder->ctx, MPP_PORT_INPUT, MPP_POLL_BLOCK)) 
         fprintf (stderr, "mpp input poll failed");
@@ -147,10 +154,11 @@ mpp_h264_create_encoder(int width, int height, encoder_callback_t callback, void
 
     encoder->width = width;
     encoder->height = height;
+    encoder->h_stride = UP_TO_16(width);
+    encoder->v_stride = UP_TO_16(height);
     encoder->callback = callback;
     encoder->arg = arg;
     
-    encoder->type = MPP_VIDEO_CodingAVC;
     MPP_RET ret = MPP_OK;
     ret = mpp_create(&encoder->ctx, &encoder->mpi);
     if (MPP_OK != ret) {
@@ -159,7 +167,7 @@ mpp_h264_create_encoder(int width, int height, encoder_callback_t callback, void
         return NULL;
     }
 
-    ret = mpp_init(encoder->ctx, MPP_CTX_ENC, encoder->type);
+    ret = mpp_init(encoder->ctx, MPP_CTX_ENC, MPP_VIDEO_CodingAVC);
     if (MPP_OK != ret) {
         fprintf(stderr, "mpp_init failed\n");
         mpp_destroy(encoder->ctx);
@@ -174,6 +182,7 @@ mpp_h264_create_encoder(int width, int height, encoder_callback_t callback, void
     memset (&codec_cfg, 0, sizeof (codec_cfg));
 
     rc_cfg.change = MPP_ENC_RC_CFG_CHANGE_ALL;
+    /* quality control method: constan bit rate */
     rc_cfg.rc_mode = MPP_ENC_RC_MODE_CBR;
     rc_cfg.quality = MPP_ENC_RC_QUALITY_MEDIUM;
 
@@ -195,10 +204,7 @@ mpp_h264_create_encoder(int width, int height, encoder_callback_t callback, void
     codec_cfg.h264.qp_max_step = 8;
 
     /* Bits of a GOP */
-    rc_cfg.bps_target = WIDTH
-            * HEIGHT
-            / 8 * 30
-            / 1;
+    rc_cfg.bps_target = 1024*1024; /* 1Mbit per second */
     rc_cfg.bps_max = rc_cfg.bps_target * 17 / 16;
     rc_cfg.bps_min = rc_cfg.bps_target * 15 / 16;
 
@@ -270,6 +276,7 @@ mpp_h264_encode_frame(h264_encoder_mpp_t encoder, yuv_frame_t frame, int eos)
     MppPacket packet = NULL;
 	void *ptr;
 	int ret = 0;
+    int frame_size;
 
     mpp_frame_set_buffer(encoder->mpp_frame, frame_in);
 
@@ -281,8 +288,9 @@ mpp_h264_encode_frame(h264_encoder_mpp_t encoder, yuv_frame_t frame, int eos)
         /* Y plane */
 		memcpy(ptr, frame->Y, frame->Ysize);
         /* UV planes */
-		memcpy(ptr + WIDTH*UP_TO_16(HEIGHT), frame->U, frame->Usize);
-		memcpy(ptr + WIDTH*UP_TO_16(HEIGHT) + WIDTH*UP_TO_16(HEIGHT) / 4, frame->V, frame->Vsize);
+        frame_size = encoder->h_stride * encoder->v_stride;
+		memcpy(ptr + frame_size, frame->U, frame->Usize);
+		memcpy(ptr + frame_size + frame_size/4, frame->V, frame->Vsize);
         mpp_frame_set_eos(encoder->mpp_frame, 0);
     }
 
@@ -330,20 +338,7 @@ mpp_h264_encode_frame(h264_encoder_mpp_t encoder, yuv_frame_t frame, int eos)
 
                 mpp_task_meta_get_s32(task, KEY_OUTPUT_INTRA, &intra_flag, 0);
 
-                /* Fill the buffer */
-				static int first_sps = 1;
-                if ((intra_flag || first_sps) && encoder->sps_packet) {
-					first_sps = 0;
-                    void *sps_ptr = mpp_packet_get_pos(encoder->sps_packet);
-                    size_t sps_len = mpp_packet_get_length(encoder->sps_packet);
-                    encoder->callback(encoder->arg, sps_ptr, sps_len);
-                    encoder->callback(encoder->arg, ptr, len);
-					// TODO: write(fd, sps_ptr, sps_len);
-					// TODO: write(fd, ptr, len);
-                } else {
-					// TODO: write(fd, ptr, len);
-                    encoder->callback(encoder->arg, ptr, len);
-                }
+                encoder->callback(encoder->arg, ptr, len);
 
                 mpp_packet_deinit(&packet);
             }
