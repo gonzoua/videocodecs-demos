@@ -8,11 +8,18 @@
 #include "yuv_reader.h"
 #include "h264_encoder_mpp.h"
 
+/*
+ * Argument for encoder callback
+ */
 struct h264_writer
 {
     int fd;
 };
 
+/*
+ * Called for every encoded packet. Writes h264 bitstream
+ * to the output file
+ */
 void h264_writer_callback(void *ptr, char *data, ssize_t len)
 {
     ssize_t bytes, total;

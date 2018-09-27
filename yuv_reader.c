@@ -6,7 +6,7 @@
 #include "yuv_reader.h"
 
 #define DEFAULT_PLANE_ALIGNMENT	16
-#define ALIGN_UP_TO(ptr, alignment) (((intptr_t)(ptr) + (alignment) - 1) & ~(alignment));
+#define ALIGN_TO(ptr, alignment) (((intptr_t)(ptr) + (alignment) - 1) & ~((alignment) - 1))
 
 yuv_reader_t
 yuv_reader_open(const char *path, int width, int height)
@@ -62,7 +62,7 @@ yuv_alloc_frame(yuv_reader_t reader)
         free(frame);
         return (NULL);
     }
-	frame->Y = (unsigned char*)ALIGN_UP_TO(frame->Yptr, DEFAULT_PLANE_ALIGNMENT);
+	frame->Y = (unsigned char*)ALIGN_TO(frame->Yptr, DEFAULT_PLANE_ALIGNMENT);
 	frame->Ysize = Ysize;
 
 	frame->Uptr = (unsigned char *)malloc(UVsize + DEFAULT_PLANE_ALIGNMENT);
@@ -72,7 +72,7 @@ yuv_alloc_frame(yuv_reader_t reader)
         return (NULL);
     }
 	frame->Usize = UVsize;
-	frame->U = (unsigned char*)ALIGN_UP_TO(frame->Uptr, DEFAULT_PLANE_ALIGNMENT);
+	frame->U = (unsigned char*)ALIGN_TO(frame->Uptr, DEFAULT_PLANE_ALIGNMENT);
 
 	frame->Vptr = (unsigned char *)malloc(UVsize + DEFAULT_PLANE_ALIGNMENT);
 	if (!frame->Vptr) {
@@ -82,7 +82,7 @@ yuv_alloc_frame(yuv_reader_t reader)
         return (NULL);
     }
 	frame->Vsize = UVsize;
-	frame->V = (unsigned char*)ALIGN_UP_TO(frame->Uptr, DEFAULT_PLANE_ALIGNMENT);
+	frame->V = (unsigned char*)ALIGN_TO(frame->Uptr, DEFAULT_PLANE_ALIGNMENT);
 
 	return (frame);
 }
