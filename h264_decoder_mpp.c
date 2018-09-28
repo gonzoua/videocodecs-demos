@@ -39,7 +39,7 @@ struct h264_decoder_mpp {
  * Create decoder context
  */
 h264_decoder_mpp_t
-mpp_h264_create_decoder(decoder_callback_t callback, void *arg)
+h264_mpp_decoder_create(decoder_callback_t callback, void *arg)
 {
     struct h264_decoder_mpp *decoder;
     decoder = malloc(sizeof(struct h264_decoder_mpp));
@@ -114,7 +114,7 @@ mpp_h264_create_decoder(decoder_callback_t callback, void *arg)
  * Cleanup decoder context
  */
 int
-mpp_h264_destroy_decoder(h264_decoder_mpp_t decoder)
+h264_decoder_mpp_destroy(h264_decoder_mpp_t decoder)
 {
     MPP_RET ret;
 
@@ -158,7 +158,7 @@ mpp_h264_destroy_decoder(h264_decoder_mpp_t decoder)
  *   -1 if there is an error 
  */
 int
-mpp_h264_decoder_submit_data(h264_decoder_mpp_t decoder, char *data, ssize_t len)
+h264_decoder_mpp_submit_packet(h264_decoder_mpp_t decoder, char *data, ssize_t len)
 {
     MPP_RET ret;
 
@@ -194,7 +194,7 @@ mpp_h264_decoder_submit_data(h264_decoder_mpp_t decoder, char *data, ssize_t len
 
 
 int
-mpp_h264_get_frame(h264_decoder_mpp_t decoder)
+h264_decoder_mpp_get_frame(h264_decoder_mpp_t decoder)
 {
     MPP_RET ret;
     MppFrame frame;

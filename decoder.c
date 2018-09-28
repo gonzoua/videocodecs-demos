@@ -109,7 +109,7 @@ main(int argc, const char *argv[])
     /*
      * Create H264 decoder
      */
-    decoder = mpp_h264_create_decoder(frame_writer_callback, writer);
+    decoder = h264_mpp_decoder_create(frame_writer_callback, writer);
     if (decoder == NULL) {
         fprintf(stderr, "failed to create H264 decoder\n");
         exit(1);
@@ -139,7 +139,7 @@ main(int argc, const char *argv[])
         /*
          * Feed bitstrem to decoder until it's full
          */
-        if (mpp_h264_decoder_submit_data(decoder, buf, bytes) == EAGAIN)
+        if (h264_decoder_mpp_submit_packet(decoder, buf, bytes) == EAGAIN)
             ready_for_new_buffer = 0;
         else
             ready_for_new_buffer = 1;
@@ -148,13 +148,13 @@ main(int argc, const char *argv[])
          * Check if there are frames in output buffers. If there are any
          * they'll be handled in decoder callback
          */
-        mpp_h264_get_frame(decoder);
+        h264_decoder_mpp_get_frame(decoder);
     }
 
     /*
      * Clean-up after ourselves
      */
-    mpp_h264_destroy_decoder(decoder);
+    h264_decoder_mpp_destroy(decoder);
     close(writer->fd);
     free(writer);
 
