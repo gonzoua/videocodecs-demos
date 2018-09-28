@@ -102,22 +102,22 @@ main(int argc, char * const*argv)
     }
 
     frame = yuv_alloc_frame(yuv);
-    encoder = mpp_h264_create_encoder(width, height, h264_writer_callback, writer);
+    encoder = h264_mpp_encoder_create(width, height, h264_writer_callback, writer);
     if (encoder == NULL) {
         fprintf(stderr, "failed to create H264 encoder\n");
         exit(1);
     }
 
     while (yuv_read_frame(yuv, frame) == 0) {
-        mpp_h264_encode_frame(encoder, frame, 0);
+        h264_mpp_encoder_submit_frame(encoder, frame, 0);
     }
 
     /* Generate EOS packet */
-    mpp_h264_encode_frame(encoder, frame, 1);
+    h264_mpp_encoder_submit_frame(encoder, frame, 1);
 
     /* Cleanup encoder things */
     yuv_free_frame(frame);
-    mpp_h264_destroy_encoder(encoder);
+    h264_mpp_encoder_destroy(encoder);
 
     close(writer->fd);
     free(writer);

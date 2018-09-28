@@ -43,7 +43,7 @@ struct h264_encoder_mpp {
 };
 
 static int
-mpp_h264_setup_format(struct h264_encoder_mpp *encoder)
+h264_mpp_setup_format(struct h264_encoder_mpp *encoder)
 {
     MppEncPrepCfg prep_cfg;
     memset (&prep_cfg, 0, sizeof (prep_cfg));
@@ -73,7 +73,7 @@ mpp_h264_setup_format(struct h264_encoder_mpp *encoder)
 }
 
 static int
-mpp_h264_alloc_frames(struct h264_encoder_mpp *encoder)
+h264_mpp_alloc_frames(struct h264_encoder_mpp *encoder)
 {
     /* Allocator buffers */
     if (mpp_buffer_group_get_internal(&encoder->input_group, MPP_BUFFER_TYPE_ION))
@@ -116,7 +116,7 @@ failed:
 }
 
 static void
-mpp_h264_free_frames(struct h264_encoder_mpp *encoder)
+h264_mpp_free_frames(struct h264_encoder_mpp *encoder)
 {
     for (int i = 0; i < MPP_MAX_BUFFERS; i++) {
         if (encoder->input_buffer[i]) {
@@ -147,7 +147,7 @@ mpp_h264_free_frames(struct h264_encoder_mpp *encoder)
 }
 
 h264_encoder_mpp_t
-mpp_h264_create_encoder(int width, int height, encoder_callback_t callback, void *arg)
+h264_mpp_encoder_create(int width, int height, encoder_callback_t callback, void *arg)
 {
     struct h264_encoder_mpp *encoder;
     encoder = malloc(sizeof(struct h264_encoder_mpp));
@@ -232,13 +232,13 @@ mpp_h264_create_encoder(int width, int height, encoder_callback_t callback, void
         return NULL;
     }
 
-    if (mpp_h264_setup_format(encoder) < 0) {
+    if (h264_mpp_setup_format(encoder) < 0) {
         mpp_destroy(encoder->ctx);
         free(encoder);
         return NULL;
     }
 
-    if (mpp_h264_alloc_frames(encoder) < 0) {
+    if (h264_mpp_alloc_frames(encoder) < 0) {
         mpp_destroy(encoder->ctx);
         free(encoder);
         return NULL;
@@ -248,12 +248,12 @@ mpp_h264_create_encoder(int width, int height, encoder_callback_t callback, void
 }
 
 int
-mpp_h264_destroy_encoder(h264_encoder_mpp_t encoder)
+h264_mpp_encoder_destroy(h264_encoder_mpp_t encoder)
 {
 
     MPP_RET ret;
 
-    mpp_h264_free_frames(encoder);
+    h264_mpp_free_frames(encoder);
 
     ret = mpp_destroy(encoder->ctx);
     if (MPP_OK != ret) {
@@ -267,7 +267,7 @@ mpp_h264_destroy_encoder(h264_encoder_mpp_t encoder)
 }
 
 int
-mpp_h264_encode_frame(h264_encoder_mpp_t encoder, yuv_frame_t frame, int eos)
+h264_mpp_encoder_submit_frame(h264_encoder_mpp_t encoder, yuv_frame_t frame, int eos)
 {
     MppTask task = NULL;
     MppBuffer frame_in = encoder->input_buffer[encoder->current_index];
