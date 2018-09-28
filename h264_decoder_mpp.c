@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <sys/errno.h>
+#include <stdint.h>
 
 #include "rockchip/rk_mpi.h"
 #include "rockchip/mpp_buffer.h"
@@ -158,7 +159,7 @@ h264_decoder_mpp_destroy(h264_decoder_mpp_t decoder)
  *   -1 if there is an error 
  */
 int
-h264_decoder_mpp_submit_packet(h264_decoder_mpp_t decoder, char *data, ssize_t len)
+h264_decoder_mpp_submit_packet(h264_decoder_mpp_t decoder, uint8_t *data, ssize_t len)
 {
     MPP_RET ret;
 
@@ -276,8 +277,8 @@ h264_decoder_mpp_get_frame(h264_decoder_mpp_t decoder)
             MppBuffer mpp_buf = mpp_frame_get_buffer(frame);
             MppFrameFormat fmt = mpp_frame_get_fmt(frame);
             if (fmt == MPP_FMT_YUV420SP) {
-                char *yplane = mpp_buffer_get_ptr(mpp_buf);
-                char *uvplane = yplane + h_stride*v_stride;
+                uint8_t *yplane = mpp_buffer_get_ptr(mpp_buf);
+                uint8_t *uvplane = yplane + h_stride*v_stride;
 
                 decoder->callback(decoder->arg, yplane, uvplane, width, height,
                     h_stride, v_stride);

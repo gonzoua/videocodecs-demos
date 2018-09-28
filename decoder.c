@@ -4,6 +4,7 @@
 #include <sys/errno.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdint.h>
 
 #include "h264_decoder_mpp.h"
 
@@ -19,7 +20,7 @@ struct frame_writer
  * Writes @len bytes of buffer @data ensuring that all of them are written
  */
 static int
-write_buffer(int fd, char *data, ssize_t len)
+write_buffer(int fd, uint8_t *data, ssize_t len)
 {
     ssize_t bytes, total;
 
@@ -41,7 +42,7 @@ write_buffer(int fd, char *data, ssize_t len)
  * Called for every decoded frame. The frame format is NV12
  */
 void
-frame_writer_callback(void *ptr, char *yplane, char *uvplane,
+frame_writer_callback(void *ptr, uint8_t *yplane, uint8_t *uvplane,
     int width, int height, int h_stride, int v_stride)
 {
     struct frame_writer *writer = (struct frame_writer *)ptr;
@@ -71,7 +72,7 @@ main(int argc, const char *argv[])
 {
     h264_decoder_mpp_t decoder;
     struct frame_writer *writer;
-    char *buf;
+    uint8_t *buf;
     int buf_size;
     ssize_t bytes;
     int fd;

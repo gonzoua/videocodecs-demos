@@ -3,6 +3,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/errno.h>
+#include <stdint.h>
+
 #include "yuv_reader.h"
 
 #define DEFAULT_PLANE_ALIGNMENT	16
@@ -57,24 +59,24 @@ yuv_alloc_frame(yuv_reader_t reader)
 	 * Encoder might have alignment requirements for memory addresses
 	 * use default one for now
 	 */
-	frame->Yptr = (unsigned char *)malloc(Ysize + DEFAULT_PLANE_ALIGNMENT);
+	frame->Yptr = (uint8_t*)malloc(Ysize + DEFAULT_PLANE_ALIGNMENT);
 	if (!frame->Yptr) {
         free(frame);
         return (NULL);
     }
-	frame->Y = (unsigned char*)ALIGN_TO(frame->Yptr, DEFAULT_PLANE_ALIGNMENT);
+	frame->Y = (uint8_t*)ALIGN_TO(frame->Yptr, DEFAULT_PLANE_ALIGNMENT);
 	frame->Ysize = Ysize;
 
-	frame->Uptr = (unsigned char *)malloc(UVsize + DEFAULT_PLANE_ALIGNMENT);
+	frame->Uptr = (uint8_t*)malloc(UVsize + DEFAULT_PLANE_ALIGNMENT);
 	if (!frame->Uptr) {
         free(frame->Yptr);
         free(frame);
         return (NULL);
     }
 	frame->Usize = UVsize;
-	frame->U = (unsigned char*)ALIGN_TO(frame->Uptr, DEFAULT_PLANE_ALIGNMENT);
+	frame->U = (uint8_t*)ALIGN_TO(frame->Uptr, DEFAULT_PLANE_ALIGNMENT);
 
-	frame->Vptr = (unsigned char *)malloc(UVsize + DEFAULT_PLANE_ALIGNMENT);
+	frame->Vptr = (uint8_t*)malloc(UVsize + DEFAULT_PLANE_ALIGNMENT);
 	if (!frame->Vptr) {
         free(frame->Yptr);
         free(frame->Vptr);
@@ -82,7 +84,7 @@ yuv_alloc_frame(yuv_reader_t reader)
         return (NULL);
     }
 	frame->Vsize = UVsize;
-	frame->V = (unsigned char*)ALIGN_TO(frame->Vptr, DEFAULT_PLANE_ALIGNMENT);
+	frame->V = (uint8_t*)ALIGN_TO(frame->Vptr, DEFAULT_PLANE_ALIGNMENT);
 
 	return (frame);
 }

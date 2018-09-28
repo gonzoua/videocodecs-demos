@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <getopt.h>
+#include <stdint.h>
 
 #include "yuv_reader.h"
 #include "h264_encoder_mpp.h"
@@ -21,7 +22,7 @@ struct h264_writer
  * Called for every encoded packet. Writes h264 bitstream
  * to the output file
  */
-void h264_writer_callback(void *ptr, char *data, ssize_t len)
+void h264_writer_callback(void *ptr, uint8_t *data, ssize_t len)
 {
     ssize_t bytes, total;
 

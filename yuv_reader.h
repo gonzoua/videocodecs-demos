@@ -7,9 +7,9 @@ struct yuv_frame
     int                 height;
 
     /* Aligned pointers to pixel data */
-    unsigned char       *Y;
-    unsigned char       *U;
-    unsigned char       *V;
+    uint8_t             *Y;
+    uint8_t             *U;
+    uint8_t             *V;
 
     /* Size of the plane (not allocated memory) */
     size_t              Ysize;
@@ -17,9 +17,9 @@ struct yuv_frame
     size_t              Vsize;
 
     /* Original pointers to use in free() */
-    unsigned char       *Yptr;
-    unsigned char       *Uptr;
-    unsigned char       *Vptr;
+    uint8_t             *Yptr;
+    uint8_t             *Uptr;
+    uint8_t             *Vptr;
 };
 
 struct yuv_reader
