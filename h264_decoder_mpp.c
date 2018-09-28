@@ -1,3 +1,28 @@
+/*-
+ * Copyright (c) 2018 Oleksandr Tymoshenko <gonzo@bluezbox.com>
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
+
 #include <stdio.h>
 #include <fcntl.h>
 #include <string.h>
@@ -39,7 +64,7 @@ struct h264_decoder_mpp {
 /*
  * Create decoder context
  */
-h264_decoder_mpp_t
+struct h264_decoder_mpp *
 h264_mpp_decoder_create(decoder_callback_t callback, void *arg)
 {
     struct h264_decoder_mpp *decoder;
@@ -115,7 +140,7 @@ h264_mpp_decoder_create(decoder_callback_t callback, void *arg)
  * Cleanup decoder context
  */
 int
-h264_decoder_mpp_destroy(h264_decoder_mpp_t decoder)
+h264_decoder_mpp_destroy(struct h264_decoder_mpp *decoder)
 {
     MPP_RET ret;
 
@@ -159,7 +184,7 @@ h264_decoder_mpp_destroy(h264_decoder_mpp_t decoder)
  *   -1 if there is an error 
  */
 int
-h264_decoder_mpp_submit_packet(h264_decoder_mpp_t decoder, uint8_t *data, ssize_t len)
+h264_decoder_mpp_submit_packet(struct h264_decoder_mpp *decoder, uint8_t *data, ssize_t len)
 {
     MPP_RET ret;
 
@@ -195,7 +220,7 @@ h264_decoder_mpp_submit_packet(h264_decoder_mpp_t decoder, uint8_t *data, ssize_
 
 
 int
-h264_decoder_mpp_get_frame(h264_decoder_mpp_t decoder)
+h264_decoder_mpp_get_frame(struct h264_decoder_mpp *decoder)
 {
     MPP_RET ret;
     MppFrame frame;
