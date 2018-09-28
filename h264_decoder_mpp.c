@@ -117,7 +117,6 @@ int
 mpp_h264_destroy_decoder(h264_decoder_mpp_t decoder)
 {
     MPP_RET ret;
-    int result;
 
     ret = decoder->mpi->reset(decoder->ctx);
     if (ret)

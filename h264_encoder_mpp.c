@@ -252,7 +252,6 @@ mpp_h264_destroy_encoder(h264_encoder_mpp_t encoder)
 {
 
     MPP_RET ret;
-    int result;
 
     mpp_h264_free_frames(encoder);
 
@@ -353,4 +352,6 @@ mpp_h264_encode_frame(h264_encoder_mpp_t encoder, yuv_frame_t frame, int eos)
             break;
         }
     } while (1);
+
+    return (ret);
 }
